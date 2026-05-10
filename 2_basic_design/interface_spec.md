@@ -285,7 +285,7 @@ ST **WAKE_UP** 等＋ Seeed Wiki。**Arduino ドライバ**は Adafruit core と
 
 ### 3.6 e-Paper ドライバ層（GxEPD2、F4）
 
-**概要：** **提供者** e-Paper ドライバ。**利用者** アプリ。**関連** F4、[Waveshare 2.9" Manual](https://www.waveshare.com/wiki/2.9inch_e-Paper_Module_Manual#C)。
+**概要：** **提供者** e-Paper ドライバ。**利用者** アプリ。**関連** F4、[Waveshare 2.9inch e-Paper Module (B) Manual](https://www.waveshare.com/wiki/2.9inch_e-Paper_Module_(B)_Manual)。
 
 #### 境界契約（インタフェース）
 
@@ -319,11 +319,12 @@ ST **WAKE_UP** 等＋ Seeed Wiki。**Arduino ドライバ**は Adafruit core と
 #### 前置・制約
 
 - SPI **mode 0**、**296×128**（[`hardware_spec.md`](../1_requirements/hardware_spec.md)）。
-- 改版 **(C)** と **GxEPD2 のドライバクラス**は実機ラベルで突合。
+- パネルは **BWR 3色（赤／黒／白）**。GxEPD2 クラス: `GxEPD2_290_C90c`、テンプレート: `GxEPD2_3C`（実機確認済み）。
+- **赤チャンネル（`GxEPD_RED`）** は換気 High 警告等の強調表示に使用可。BWR パネルの赤は**オレンジがかった赤が正常発色**（パネル技術上の仕様）。
 
 #### 実装方針
 
-**[GxEPD2](https://github.com/ZinggJM/GxEPD2)** をそのまま利用。RST／BUSY 等は `hardware_spec` の D 番号を `pin_config.h` 等でマクロ化する。
+**[GxEPD2](https://github.com/ZinggJM/GxEPD2)** をそのまま利用。RST／BUSY 等は `hardware_spec` の D 番号を `pin_config.h` 等でマクロ化する。rotation=1（landscape, W=296, H=128）で使用。
 
 ---
 
