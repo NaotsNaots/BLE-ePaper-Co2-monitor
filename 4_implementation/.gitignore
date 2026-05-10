@@ -1,0 +1,18 @@
+# Python venv (local PlatformIO Core — 名前は惯例どおり `.venv`。`.pio/` ビルドキャッシュと混同しない)
+.venv/
+
+# PlatformIO がプロジェクト直下に別名で作った古い環境（再生成された場合は削除して `.venv` のみでよい）
+.pio-venv/
+
+# PlatformIO
+.pio/
+
+# IDE（ローカル設定のみ除外。チーム共有したい場合は追記を調整）
+.vscode/
+
+# secrets / local overrides
+*.pem
+secrets/
+
+# OS
+.DS_Store

@@ -1,0 +1,67 @@
+@startuml BLE_ePaper_UseCases
+
+' dot が無い環境でも描画できる内蔵レイアウタ
+!pragma layout smetana
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "利用者\n(据え置き)" as User
+actor "スマホ\n(BLE Central)" as Phone
+actor "開発・保守担当" as Dev
+
+package "据え置き環境モニター" {
+
+  usecase "UC-A\n定期環境状態を\ne-Paperで視認する" as UCA
+
+  usecase "UC-B\nジェスチャで\n再測定し画面を更新" as UCB
+
+  usecase "UC-C\nウィンドウ内 BLE Read／Notify\nでデータ取得" as UCC
+
+  usecase "UC-D\n電池低下表示と安全停止" as UCD
+
+  usecase "共通: 昇圧電源動作\n(F1)" as IncF1
+
+  usecase "共通: 省電スリープ待機\n(F5)" as IncF5
+
+}
+
+package "開発・検証コンテキスト" {
+  usecase "UC-E\nUSB でファーム更新\n(F8)" as UCE
+}
+
+User --> UCA
+User --> UCB
+User --> UCD
+
+Phone --> UCC : Read / Notify
+
+Dev --> UCE
+
+note right of IncF5
+ UC-A〜D の実現における共通下地
+ (電源・省電)。
+end note
+
+note bottom of UCC
+ 事前条件: F6 広告 60秒内。
+ 運用は UC-B 後が自然。
+end note
+
+UCA ..> IncF1 <<include>>
+UCA ..> IncF5 <<include>>
+
+UCB ..> IncF1 <<include>>
+UCB ..> IncF5 <<include>>
+
+UCC ..> IncF1 <<include>>
+UCC ..> IncF5 <<include>>
+
+UCB ..> UCC <<extend>>
+note on link
+ F6 : ジェスチャ後ウィンドウ内 Read／Notify（CCCD）
+end note
+
+UCD ..> IncF1 <<include>>
+
+@enduml

@@ -1,0 +1,31 @@
+# Cursor / local IDE
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+env/
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test / logs (runtime)
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Firmware images — do not commit (rebuild with PlatformIO; see GIT_WORKFLOW.md §5)
+4_implementation/*.elf
+4_implementation/*.hex
+4_implementation/*.bin
+4_implementation/*.uf2
+4_implementation/export/
+4_implementation/dist/

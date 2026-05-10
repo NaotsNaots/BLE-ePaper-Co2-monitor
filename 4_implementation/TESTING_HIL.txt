@@ -1,0 +1,9 @@
+Hardware-in-the-loop (実機) 確認メモ（詳細設計フェーズの受け入れ用）
+
+1. USB 書き込み: pio run -t upload --upload-port <ttyACM*>
+2. シリアル 115200: ブートログ、測定エラー時メッセージ
+3. SGP40: I2C 0x59、D4/D5（Wire）
+4. e-Paper: SPI D10/D8、CS D1、DC D3、RST D6、BUSY D7 — 白画面時は GxEPD2 ドライバ（epd_driver.h）を (C) 系に差し替え
+5. IMU: Sense 内蔵 Wire1、ウェーク後シェイクで BLE ウィンドウ（約 60s 広告）
+6. BLE: nRF Connect でサービス 11111101-...-0001、特性 1101–1104 Read/Notify
+7. 省電: RTC2 約 10 分 + INT1 ピン（variant PIN_LSM6DS3TR_C_INT1）で waitForEvent 復帰 — 電流・実機で再検証
