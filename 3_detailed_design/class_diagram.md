@@ -56,7 +56,7 @@ struct MeasurementFrame {
 
 **eCO₂ 推計:** 係数・区間は `Eco2Mapper` 内に閉じる（要件用語は *参考推計*／真 CO₂ 非測定）。入力は少なくとも **当サイクルの `vocIndex`** と **直前スナップショット**（トレンド用）。
 
-**GxEPD2 ドライバクラス:** 実機確認済み。**`GxEPD2_290_C90c`**（GDEM029C90 / SSD1619A 相当、BWR 3色、HIGH=busy）を `epd_driver.h` の `using EpdDriver` で一元化する。`GxEPD2_3C` テンプレートを使用。
+**GxEPD2 ドライバクラス:** 実機確認済み。**`GxEPD2_290_C90c`**（パネル型番不明・SSD1680互換レジスタ動作確認済み・HIGH=busy・3色）を `epd_driver.h` の `using EpdDriver` で一元化する。GxEPD2 ライブラリ内で条件を満たす唯一の 2.9インチ3色ドライバとして採用（最善手）。`GxEPD2_3C` テンプレートを使用。
 
 ---
 
