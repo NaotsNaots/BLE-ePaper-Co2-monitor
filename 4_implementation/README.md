@@ -26,88 +26,108 @@
 2. Cursor で **`4_implementation` フォルダを開く**（`platformio.ini` がある階層をワークスペースのルートにする。リポジトリ全体を開いた場合は、「追加のフォルダー」で `4_implementation` を入れるか、このパスだけ開く）。
 3. 左の **PlatformIO** アイコン（アリのロゴ）から **Build**／**Upload**／**Serial Monitor** を使う。初回ビルドでは Seeed の `platform-seeedboards` 取得に時間がかかる。
 4. ターミナルで **`pio` が PATH に無いとき** は、このフォルダ内の `./.venv/bin/pio` を使う（`.pio/` は **ビルド成果物キャッシュ用**であり、venv ではない）。
-5. （参考）環境により **`.pio-venv`** という名前が残ることがある。**`.venv`** に統一したいときは、この README の「ローカルの PlatformIO を `.venv` にそろえる」を参照する。
+5. （参考）環境により **`.pio-venv`** という名前が残ることがある。**`.venv`** に統一したいときは、この README の「CLI セットアップ」を参照する。
 
 **Linux（USB 書き込み・シリアル）:** デバイスにアクセスできないときは、[PlatformIO の udev 手順](https://docs.platformio.org/en/latest/core/installation/udev-rules.html)に沿ってユーザー権限を確認する。
 
 ---
 
-## ローカルの PlatformIO を `.venv` にそろえる
+## CLI セットアップ（初回のみ）
 
-拡張が **`.pio-venv`** のような名前を付けても、このリポジトリでは **標準どおり `./.venv/` に PlatformIO Core を置く**運用とする（**`.pio/`** はキャッシュのみで venv と混ぜない）。
+ターミナルから `pio` を使う場合、このプロジェクトでは **`.venv/` にインストールされた PlatformIO** を使う。以下を一度だけ実行する。
 
 ```bash
 cd 4_implementation
-python3 -m venv .venv
-.venv/bin/pip install 'platformio>=6.1,<7'
-rm -rf .pio-venv   # 同名の環境だけが残っていれば削除してよい
+python3 -m venv .venv                        # プロジェクト専用の Python 環境を作成
+.venv/bin/pip install 'platformio>=6.1,<7'   # その中に PlatformIO をインストール
+rm -rf .pio-venv   # IDE 拡張が自動生成した別 venv が残っていれば削除
 ```
 
-ターミナルからは次のように呼ぶ:
-
-```bash
-./.venv/bin/pio run
-```
+> **`.venv/` と `.pio/` の違い:**
+> `.venv/` は PlatformIO CLI 本体を入れる Python 仮想環境。
+> `.pio/` はビルド成果物のキャッシュ置き場であり、venv ではない。
 
 ---
 
-## Setup / build
+## `pio` コマンドの呼び出し方
 
-[PlatformIO](https://platformio.org/)（上記拡張**または** CLI／上記 `./.venv`）を使い、このディレクトリで作業する。
+`pio` は `.venv/bin/` の中にあるため、グローバルには見つからない。呼び出し方は2通りある。
+
+**方法A — 直接パス指定（単発実行向け）**
 
 ```bash
-cd 4_implementation
-pio run                       # PATH にある場合
-# または ./.venv/bin/pio run
+.venv/bin/pio run
 ```
 
-初回は Seeed の `platform-seeedboards` の取得に時間がかかります。
+PATH を変えないため、他のターミナルや環境に影響しない。
 
-書き込み（USB 接続・ボードのブートローダ状態に合わせる）:
+**方法B — venv を activate する（作業セッション向け）**
 
 ```bash
-pio run -t upload
-# または ./.venv/bin/pio run -t upload
+source .venv/bin/activate   # .venv/bin/ が PATH の先頭に追加される
+pio run                     # 以降 pio だけで打てる
+deactivate                  # セッション終了時に元に戻す
 ```
 
-**ポートを明示する（推奨）:** XIAO が **`/dev/ttyACM0` ではない**ことや、**書き込み実行時に USB が無い**と `No such file ... ttyACM0` になります。接続した直後に次で確認する。
+activate は `.venv/bin/` を `PATH` の先頭に追加するだけであり、動作結果は方法Aと同じ。
+**このドキュメント内のコマンド例は方法A（直接パス指定）で統一している。**
+
+---
+
+## ビルドと書き込み
+
+### ビルド
 
 ```bash
+.venv/bin/pio run
+```
+
+初回は Seeed の `platform-seeedboards` の取得に時間がかかる。
+
+### 書き込み
+
+USB 接続後、デバイス名を確認してから書き込む。
+
+```bash
+# デバイス名の確認
 ls -l /dev/ttyACM* /dev/serial/by-id/*Seeed* /dev/serial/by-id/*2886* 2>/dev/null
-./.venv/bin/pio device list
+.venv/bin/pio device list
+
+# 書き込み（ポートを明示するのが確実）
+.venv/bin/pio run -t upload --upload-port /dev/ttyACM0
 ```
 
-例（実際のデバイス名に合わせる）:
+`/dev/ttyACM` が出ず `/dev/ttyS*` だけになるときは USB データ線・抜き差し・`dmesg` を確認する。
+
+### シリアルモニタ
 
 ```bash
-./.venv/bin/pio run -t upload --upload-port /dev/ttyACM0
-# または /dev/ttyACM1 / by-id 下のシンボリックリンク
-```
-
-自動検出が **`/dev/ttyS*`** ばかりになり **`ttyACM` が出ない**ときは、USB（データ線）・直挿し・抜き差し後の `dmesg` を確認する。
-
-シリアルモニタ:
-
-```bash
-pio device monitor
-# または ./.venv/bin/pio device monitor
-# ポート指定: ./.venv/bin/pio device monitor --port /dev/ttyACM0
+.venv/bin/pio device monitor --port /dev/ttyACM0
 ```
 
 ---
 
-## ハード単体スケッチ（配線確認）
+## テスト
 
-`test/hw/` のスタンドアロンスケッチを、`platformio.ini` の **`test_sgp40_only` / `test_epaper_only`** 環境で書き込む。
+テスト全体の説明は [`test/README.md`](test/README.md) を参照。
+
+### ハード単体スケッチ（配線確認）
 
 ```bash
-# SGP40 のみ（SRAW_VOC を 2秒ごとに出力）
-./.venv/bin/pio run -e test_sgp40_only -t upload
-./.venv/bin/pio device monitor -e test_sgp40_only
+# SGP40（SRAW_VOC を 2秒ごとに出力）
+.venv/bin/pio run -e test_sgp40_only -t upload
+.venv/bin/pio device monitor -e test_sgp40_only
 
-# e-Paper のみ（白黒交互に 8秒ごとに反転）
-./.venv/bin/pio run -e test_epaper_only -t upload
-./.venv/bin/pio device monitor -e test_epaper_only
+# e-Paper（白黒交互に 8秒ごとに反転）
+.venv/bin/pio run -e test_epaper_only -t upload
+.venv/bin/pio device monitor -e test_epaper_only
+```
+
+### Native unit test（PC のみ、ハード不要）
+
+```bash
+.venv/bin/pio test -e native_eco2mapper
+.venv/bin/pio test -e native_statemachine
 ```
 
 ---
