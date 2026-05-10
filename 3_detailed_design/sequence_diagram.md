@@ -22,7 +22,7 @@ sequenceDiagram
   participant VOC as VOCGasIndexAlgorithm
   participant MAP as Eco2Mapper
   participant EPD as EpdPresenter
-  participant GX as GxEPD2_BW
+  participant GX as GxEPD2_3C
 
   RTC->>App: CPU 復帰 (WakeReason=Timer)
   App->>SGP: measureVocIndex(sraw, vocIdx)

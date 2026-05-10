@@ -75,12 +75,15 @@ XCL102 OUT(+) → 11EQS03L アノード（逆流防止順序は実機回路に�
 
 | 項目 | 値 |
 |------|-----|
-| 製品 | **Waveshare 2.9inch e-Paper Module**（当プロジェクトでの採用） |
-| 公式マニュアル | [2.9inch e-Paper Module Manual（ユーザー指定・アンカー `#C`）](https://www.waveshare.com/wiki/2.9inch_e-Paper_Module_Manual#C)；製品概要 [2.9inch e-paper module](https://www.waveshare.com/product/2.9inch-e-paper-module.htm) |
-| **(C)** 改版を持つとき | PCB／シールに **(C)** や **V2** がある場合、[2.9inch e-Paper Module (**C**) Manual](https://www.waveshare.com/wiki/2.9inch_e-Paper_Module_%28C%29_Manual) も突合し、駆動・デモ差の有無を確認する。 |
-| パネル解像度 | **296 × 128** px（`Manual` Overview／Parameters と一致） |
+| 製品 | **Waveshare 2.9inch e-Paper Module V4 互換品**（Amazon購入）。基板シルク: "waveshare 2.9inch e-Paper Module V4 rev2.1 296x128 Pixel" |
+| 色数 | **赤／黒／白 3色（BWR）**（Amazon購入ページ記載「赤白黒」・更新時間15秒）|
+| パネル型番 | **GDEM029C90 相当**（SSD1619A / SSD1680 互換コントローラ）。GxEPD2 クラス: **`GxEPD2_290_C90c`** |
+| BUSY 極性 | **HIGH=busy, LOW=idle**（実機動作確認済み） |
+| レジスタ | **SSD1680 互換**：0x12=SWRESET, 0x24=B/W チャンネル, 0x26=赤チャンネル, 0x22/0x20=表示更新 |
+| ライブラリパッチ | `GxEPD2_290_C90c.cpp` 内 SWRESET 後の `delay(10)` を `_waitWhileBusy("SWRESET", 200)` に変更必須。`.pio/libdeps` 再生成時に再適用が必要。 |
+| パネル解像度 | **296 × 128** px |
 | IF | **SPI（mode 0, CPOL=0, CPHA=0）**；ピン指定は GPIO／ピンアサイン節へ。 |
-| メモ／設計ゲート | Wiki 記載には **電源／信号に 5V が要る旨** と **3.3V／5V の併記**がある。このプロジェクトの **実効〜2.9V レール**・**MCU 3.3V ロジック**との **実機適合** を基本設計で確認すること。ファーム側は **GxEPD2** で実機改版に対応した **パネル用ドライバクラス** を選ぶ。 |
+| メモ | 3.3V 動作確認済み（実効〜2.9V レールでも動作）。更新時間は実測〜15秒（BUSYピン使用時）。 |
 | 運用・保管環境（公式製品概要／マニュアル表記の範囲） | **動作温度 0〜50 ℃**、**保存温度 −25〜60 ℃** を前提に据え置き環境を選ぶ（[2.9inch e-Paper Module Manual](https://www.waveshare.com/wiki/2.9inch_e-Paper_Module_Manual) の Parameters 等。湿度・長期保管の注意も Wiki にある）。屋外直晒・車内・結露環境は **設計外リスク**。 |
 
 ### アナログ・将来拡張

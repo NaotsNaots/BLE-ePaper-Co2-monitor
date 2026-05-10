@@ -17,7 +17,7 @@ void EpdPresenter::show(const MeasurementFrame& m) {
   if (!ok_) {
     return;
   }
-  display_.setRotation(3);
+  display_.setRotation(1);
   display_.setFont(&FreeMonoBold9pt7b);
   display_.setTextColor(GxEPD_BLACK);
   char line[48];
@@ -41,7 +41,7 @@ void EpdPresenter::showError(const char* line1, const char* line2) {
   if (!ok_) {
     return;
   }
-  display_.setRotation(3);
+  display_.setRotation(1);
   display_.setFont(&FreeMonoBold9pt7b);
   display_.setTextColor(GxEPD_BLACK);
   display_.setFullWindow();

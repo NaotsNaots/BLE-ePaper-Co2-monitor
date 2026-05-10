@@ -56,7 +56,7 @@ struct MeasurementFrame {
 
 **eCO₂ 推計:** 係数・区間は `Eco2Mapper` 内に閉じる（要件用語は *参考推計*／真 CO₂ 非測定）。入力は少なくとも **当サイクルの `vocIndex`** と **直前スナップショット**（トレンド用）。
 
-**GxEPD2 ドライバクラス:** 実板 FPC／Waveshare Rev に合わせ **`GxEPD2_290_T94_V2`** または **`GxEPD2_290_C90`**（**(C)** 系）のいずれかを `epd_driver.h` の typedef で一元化する。下記 Mermaid は **`GxEPD2_290_T94_V2`** を代表とする。
+**GxEPD2 ドライバクラス:** 実機確認済み。**`GxEPD2_290_C90c`**（GDEM029C90 / SSD1619A 相当、BWR 3色、HIGH=busy）を `epd_driver.h` の `using EpdDriver` で一元化する。`GxEPD2_3C` テンプレートを使用。
 
 ---
 
@@ -96,7 +96,7 @@ classDiagram
   }
 
   class EpdPresenter {
-    -GxEPD2_Bw display_
+    -GxEPD2_3c display_
     +begin() bool
     +show(const MeasurementFrame& m) void
     +hibernatePanel() void
@@ -164,8 +164,8 @@ classDiagram
     +reset()
   }
 
-  class GxEPD2_Bw {
-    <<GxEPD2 GxEPD2_BW Driver HEIGHT>>
+  class GxEPD2_3c {
+    <<GxEPD2 GxEPD2_3C GxEPD2_290_C90c HEIGHT>>
     +init(uint32_t serialDiag)
     +setRotation(uint8_t)
     +setFullWindow()
@@ -197,7 +197,7 @@ classDiagram
     +begin()
   }
 
-  EpdPresenter --> GxEPD2_Bw
+  EpdPresenter --> GxEPD2_3c
   ImuWakeSource --> Lsm6ds3Accel
   EnvBleService --> BLEService
   EnvBleService --> BLECharacteristic
@@ -255,9 +255,10 @@ classDiagram
 
 ### 6.2 GxEPD2
 
-- グローバル **`display`**（例: `GxEPD2_BW<GxEPD2_290_T94_V2, GxEPD2_290_T94_V2::HEIGHT> display(...);`）を `EpdPresenter` が所有。
-- **`init`** → **`setFullWindow()`** → **`setTextColor/Background`** → **`println`/ビットマップ** → **`display()`**（`firstPage`／`nextPage` ループ）は [GxEPD2 examples](https://github.com/ZinggJM/GxEPD2) に合わせる。
+- **`display_`**（`GxEPD2_3C<GxEPD2_290_C90c, GxEPD2_290_C90c::HEIGHT>`）を `EpdPresenter` が所有。
+- **`init`** → **`setFullWindow()`** → **`setTextColor`** → **`print`/ビットマップ** → **`firstPage`／`nextPage` ループ** は [GxEPD2 examples](https://github.com/ZinggJM/GxEPD2) に合わせる。rotation=1（landscape, W=296, H=128）を使用。
 - 更新後 **`hibernate()`** でパネル電源抑制（Wiki／ライブラリ準拠）。
+- **注意:** `.pio/libdeps` 内 `GxEPD2_290_C90c.cpp` の SWRESET 後 `delay(10)` を `_waitWhileBusy("SWRESET", 200)` にパッチ適用必須（`hardware_spec.md` 参照）。
 
 ### 6.3 LSM6DS3（IMU）
 

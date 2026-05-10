@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GxEPD2_BW.h>
+#include <GxEPD2_3C.h>
 #include "app/types.h"
 #include "display/epd_driver.h"
 
@@ -13,6 +13,6 @@ public:
   void hibernatePanel();
 
 private:
-  GxEPD2_BW<EpdDriver, kEpdHeight> display_;
+  GxEPD2_3C<EpdDriver, kEpdHeight> display_;
   bool ok_ = false;
 };
