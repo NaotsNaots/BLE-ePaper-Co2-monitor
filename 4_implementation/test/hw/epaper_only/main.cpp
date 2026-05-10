@@ -68,7 +68,7 @@ void loop() {
   delay(20000); // 15s refresh + 余裕
   ++tick;
 
-  switch (tick % 3u) {
+  switch (tick % 4u) {
     case 0:
       refreshScreen(GxEPD_WHITE, GxEPD_BLACK, "WHITE", tick);
       Serial.println("[epd] white");
@@ -81,8 +81,15 @@ void loop() {
       // 赤発色前に白でリセット → 粒子を初期位置に戻してから赤を駆動
       refreshScreen(GxEPD_WHITE, GxEPD_BLACK, "RED..", tick);
       delay(1000);
-      refreshScreen(GxEPD_WHITE, GxEPD_RED, "RED", tick);
-      Serial.println("[epd] red");
+      refreshScreen(GxEPD_WHITE, GxEPD_RED, "RED FG", tick);
+      Serial.println("[epd] red fg");
+      break;
+    case 3:
+      // 赤背景・白文字。前画面が赤系のため白でリセットしてから駆動
+      refreshScreen(GxEPD_WHITE, GxEPD_BLACK, "RED..", tick);
+      delay(1000);
+      refreshScreen(GxEPD_RED, GxEPD_WHITE, "RED BG", tick);
+      Serial.println("[epd] red bg");
       break;
   }
 }
