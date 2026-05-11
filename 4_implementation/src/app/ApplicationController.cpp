@@ -9,7 +9,7 @@ namespace {
 
 constexpr uint32_t kSerialBaud = 115200;
 constexpr uint32_t kUsbDelayMs = 800;
-constexpr uint8_t kImuThresh = 24;
+constexpr uint8_t kImuThresh = 4;
 constexpr uint8_t kMeasureRetries = 3;
 constexpr uint32_t kWakeSeconds = kWakeIntervalMs / 1000u;
 
