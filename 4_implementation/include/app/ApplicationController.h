@@ -2,6 +2,7 @@
 
 #include "app/StateMachine.h"
 #include "app/types.h"
+#include "app/HistoryBuffer.h"
 #include "sensor/Sgp40Pipeline.h"
 #include "sensor/Eco2Mapper.h"
 #include "display/EpdPresenter.h"
@@ -33,7 +34,10 @@ private:
   bool hwReady_ = false;
   bool firstCycle_ = true;
   bool bleSessionActive_ = false;
+  bool historyNotifiedThisWindow_ = false;
   uint32_t bleWindowStartMs_ = 0;
   MeasurementFrame lastFrame_{};
   uint32_t sampleSeq_ = 0;
+  uint8_t  histCycleCount_ = 0;
+  HistoryBuffer hist_;
 };

@@ -86,6 +86,13 @@ void ApplicationController::runMeasurePipeline() {
   frame.srawVoc = sraw;
   eco2_.snapshotFromVoc(voc, (sampleSeq_ > 1) ? &lastFrame_ : nullptr, frame);
   lastFrame_ = frame;
+
+  // 3 サイクル（約30分）に1回履歴バッファへ保存
+  if (++histCycleCount_ >= kHistorySampleEvery) {
+    hist_.push(frame);
+    histCycleCount_ = 0;
+  }
+
   sm_.onEvent(app_fsm::MEASURE_OK);
 }
 
@@ -112,12 +119,21 @@ void ApplicationController::runBleWindowIfNeeded() {
   if (!bleSessionActive_) {
     return;
   }
-  ble_.updateGattSnapshot(lastFrame_);
-  ble_.notifySnapshotIfPossible(lastFrame_);
+
+  // 接続直後に1回だけスナップショット Notify と履歴バースト送信
+  if (!historyNotifiedThisWindow_ && Bluefruit.connected()) {
+    ble_.updateGattSnapshot(lastFrame_);
+    ble_.notifySnapshotIfPossible(lastFrame_);
+    ble_.notifyHistoryBurst(hist_.count() > 0
+      ? &hist_.at(0) : nullptr, hist_.count());
+    historyNotifiedThisWindow_ = true;
+  }
+
   uint32_t now = millis();
   if (now - bleWindowStartMs_ >= kBleAdvertiseWindowMs) {
     ble_.stopAdvertising();
     bleSessionActive_ = false;
+    historyNotifiedThisWindow_ = false;
     sm_.onEvent(app_fsm::BLE_WINDOW_EXPIRED);
     sm_.setState(app_fsm::POWER_DOWN);
     armSleepAndYield();
@@ -181,7 +197,7 @@ void ApplicationController::loop() {
     ble_.startAdvertising(kBleAdvertiseWindowMs);
     bleSessionActive_ = true;
     bleWindowStartMs_ = millis();
-    ble_.notifySnapshotIfPossible(lastFrame_);
+    historyNotifiedThisWindow_ = false;
     return;
   }
 

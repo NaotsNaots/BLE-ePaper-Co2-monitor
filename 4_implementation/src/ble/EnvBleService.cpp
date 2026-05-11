@@ -1,5 +1,6 @@
 #include "EnvBleService.h"
 #include <cstring>
+#include <Arduino.h>
 
 namespace {
 
@@ -9,7 +10,9 @@ constexpr char kSvc[] = "11111101-2222-4333-8444-A55555550001";
 constexpr char kChrVoc[] = "11111101-2222-4333-8444-A55555551101";
 constexpr char kChrEco2[] = "11111101-2222-4333-8444-A55555551102";
 constexpr char kChrSeq[] = "11111101-2222-4333-8444-A55555551103";
-constexpr char kChrFw[] = "11111101-2222-4333-8444-A55555551104";
+constexpr char kChrFw[]        = "11111101-2222-4333-8444-A55555551104";
+constexpr char kChrHistCount[] = "11111101-2222-4333-8444-A55555551105";
+constexpr char kChrHistData[]  = "11111101-2222-4333-8444-A55555551106";
 
 constexpr char kFwId[] = "0.1.0";
 
@@ -38,10 +41,12 @@ void EnvBleService::begin(const MeasurementFrame& snap) {
   service_.setUuid(uuid128(kSvc));
   service_.begin();
 
-  setupChr(chrVoc_, kChrVoc, 2, true, true);
-  setupChr(chrEco2_, kChrEco2, 2, true, true);
-  setupChr(chrSeq_, kChrSeq, 4, true, true);
-  setupChr(chrFw_, kChrFw, 16, true, false);
+  setupChr(chrVoc_,       kChrVoc,       2,  true,  true);
+  setupChr(chrEco2_,     kChrEco2,      2,  true,  true);
+  setupChr(chrSeq_,      kChrSeq,       4,  true,  true);
+  setupChr(chrFw_,       kChrFw,        16, true,  false);
+  setupChr(chrHistCount_,kChrHistCount, 2,  true,  false);
+  setupChr(chrHistData_, kChrHistData,  9,  false, true);
 
   updateGattSnapshot(snap);
 
@@ -84,6 +89,38 @@ void EnvBleService::startAdvertising(uint32_t windowMs) {
 }
 
 void EnvBleService::stopAdvertising() { Bluefruit.Advertising.stop(); }
+
+void EnvBleService::notifyHistoryBurst(const MeasurementFrame* frames, uint16_t count) {
+  if (!svcBegun_ || !Bluefruit.connected()) {
+    return;
+  }
+  // 件数を READ 特性に書き込む
+  chrHistCount_.write(&count, sizeof(count));
+
+  if (!chrHistData_.notifyEnabled() || count == 0) {
+    return;
+  }
+
+  // 1 フレーム = 9 バイト packed (oldest → newest)
+  // [0..3] sampleIndex (uint32 LE)
+  // [4..5] vocIndex    (int16  LE, clamp -32768..32767)
+  // [6..7] eco2Ppm     (uint16 LE)
+  // [8]    flags       bits[1:0]=vent, bits[3:2]=trend
+  for (uint16_t i = 0; i < count; ++i) {
+    const MeasurementFrame& f = frames[i];
+    uint8_t pkt[9];
+    memcpy(pkt, &f.sampleIndex, 4);
+    int16_t voc16 = (f.vocIndex < -32768) ? -32768
+                  : (f.vocIndex >  32767) ?  32767
+                  : static_cast<int16_t>(f.vocIndex);
+    memcpy(pkt + 4, &voc16, 2);
+    memcpy(pkt + 6, &f.eco2Ppm, 2);
+    pkt[8] = (static_cast<uint8_t>(f.vent) & 0x03)
+           | ((static_cast<uint8_t>(f.trend) & 0x03) << 2);
+    chrHistData_.notify(pkt, sizeof(pkt));
+    delay(10); // BLE スタックの TX バッファ溢れを防ぐ
+  }
+}
 
 void EnvBleService::notifySnapshotIfPossible(const MeasurementFrame& snap) {
   if (!svcBegun_ || !Bluefruit.connected()) {
