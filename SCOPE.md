@@ -61,9 +61,19 @@
 
 | # | 成果物 | パス | 状態 | 説明 |
 |---|--------|------|------|------|
-| 12 | ソースコード | `src/` | ⬜ | 詳細設計に沿った実装（PlatformIO／Arduino） |
-| 13 | テストコード | `test/` | ⬜ | PlatformIO ユニットテスト等 |
-| 14 | 設定 | `platformio.ini` 等 | ⬜ | ビルド・ターゲット・`lib_deps` 等 |
+| 12 | ソースコード | `src/` | ✅ | 詳細設計に沿った実装（PlatformIO／Arduino） |
+| 13 | テストコード | `test/` | ✅ | HW 実機テスト全5環境合格（下表参照） |
+| 14 | 設定 | `platformio.ini` 等 | ✅ | ビルド・ターゲット・`lib_deps` 等 |
+
+### ハードウェア実機テスト結果（2026-05-12）
+
+| テスト環境 | 確認内容 | 結果 |
+|-----------|---------|------|
+| `test_sgp40_only` | I2C 0x59 通信・SRAW_VOC 出力 | ✅ 合格 |
+| `test_epaper_only` | BWR 3色描画・BUSY 極性・rotation=1 | ✅ 合格 |
+| `test_imu_wake` | Wire1 バスリカバリ・ウェーク検知 | ✅ 合格 |
+| `test_ble_adv` | GATT Read/Notify・UUID・中央接続検知 | ✅ 合格 |
+| `test_sleep_cycle` | RTC タイマ復帰・IMU モーション復帰・e-Paper 更新 | ✅ 合格 |
 
 **コードレビュー基準**: 詳細設計（クラス図＋状態遷移図＋シーケンス図）と [`reviews/code_review_template.md`](reviews/code_review_template.md)
 
@@ -76,7 +86,7 @@
 | 要件 | `README.md` / `architecture` / `hardware_spec`（またはインフラ） / `features` / `use_case_diagram.md` | ✅（ドラフト合意済み） |
 | 基本設計 | `block_diagram` / **`interface_spec`（IF仕様書／必須）** | ✅ |
 | 詳細設計 | クラス／状態機械／シーケンス | ✅（チェックリスト突合済み／[`3_detailed_design/README.md`](3_detailed_design/README.md)） |
-| 実装 | `src/` / `test/` / `platformio.ini` | ⬜ |
+| 実装 | `src/` / `test/` / `platformio.ini` | ✅（HW テスト全5環境合格 2026-05-12） |
 
 フェーズごとに「省略」した項目があれば、上表または各フェーズ節で理由と代替ドキュメントを追記してください。
 
