@@ -86,7 +86,7 @@ XCL102 OUT(+) → 11EQS03L アノード（逆流防止順序は実機回路に�
 | パネル解像度 | **296 × 128** px |
 | IF | **SPI（mode 0, CPOL=0, CPHA=0）**；ピン指定は GPIO／ピンアサイン節へ。 |
 | メモ | 3.3V 動作確認済み（実効〜2.9V レールでも動作）。更新時間は実測〜15秒（BUSYピン使用時）。rotation=1 で landscape 正向き（W=296, H=128）確認済み。 |
-| 運用・保管環境（公式製品概要／マニュアル表記の範囲） | **動作温度 0〜50 ℃**、**保存温度 −25〜60 ℃** を前提に据え置き環境を選ぶ（[2.9inch e-Paper Module Manual](https://www.waveshare.com/wiki/2.9inch_e-Paper_Module_Manual) の Parameters 等。湿度・長期保管の注意も Wiki にある）。屋外直晒・車内・結露環境は **設計外リスク**。 |
+| 運用・保管環境（公式製品概要／マニュアル表記の範囲） | **動作温度 0〜50 ℃**、**保存温度 −25〜60 ℃** を前提に据え置き環境を選ぶ（[2.9inch e-Paper Module (B) Manual](https://www.waveshare.com/wiki/2.9inch_e-Paper_Module_(B)_Manual) の Parameters 等。湿度・長期保管の注意も Wiki にある）。屋外直晒・車内・結露環境は **設計外リスク**。 |
 
 ### アナログ・将来拡張
 
