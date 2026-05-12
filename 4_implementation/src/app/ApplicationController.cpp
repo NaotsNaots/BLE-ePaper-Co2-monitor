@@ -120,13 +120,16 @@ void ApplicationController::runBleWindowIfNeeded() {
     return;
   }
 
-  // 接続直後に1回だけスナップショット Notify と履歴バースト送信
+  // 接続後 CCCD 購読済みになってから1回だけ履歴バースト送信
+  // notifyHistoryBurst() が false（未購読）の間はフラグを立てず毎ループ再試行
   if (!historyNotifiedThisWindow_ && Bluefruit.connected()) {
     ble_.updateGattSnapshot(lastFrame_);
     ble_.notifySnapshotIfPossible(lastFrame_);
-    ble_.notifyHistoryBurst(hist_.count() > 0
-      ? &hist_.at(0) : nullptr, hist_.count());
-    historyNotifiedThisWindow_ = true;
+    bool sent = ble_.notifyHistoryBurst(
+      hist_.count() > 0 ? &hist_.at(0) : nullptr, hist_.count());
+    if (sent) {
+      historyNotifiedThisWindow_ = true;
+    }
   }
 
   uint32_t now = millis();

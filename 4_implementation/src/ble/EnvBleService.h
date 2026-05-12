@@ -12,7 +12,8 @@ public:
   void notifySnapshotIfPossible(const MeasurementFrame& snap);
 
   // 履歴フレームを順次 Notify する（1 フレーム = 9 バイト packed）
-  void notifyHistoryBurst(const MeasurementFrame* frames, uint16_t count);
+  // CCCD 未購読など送信不可の場合は false を返す
+  bool notifyHistoryBurst(const MeasurementFrame* frames, uint16_t count);
 
 private:
   BLEService service_;

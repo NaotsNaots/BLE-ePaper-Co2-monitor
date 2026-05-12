@@ -90,15 +90,15 @@ void EnvBleService::startAdvertising(uint32_t windowMs) {
 
 void EnvBleService::stopAdvertising() { Bluefruit.Advertising.stop(); }
 
-void EnvBleService::notifyHistoryBurst(const MeasurementFrame* frames, uint16_t count) {
+bool EnvBleService::notifyHistoryBurst(const MeasurementFrame* frames, uint16_t count) {
   if (!svcBegun_ || !Bluefruit.connected()) {
-    return;
+    return false;
   }
   // 件数を READ 特性に書き込む
   chrHistCount_.write(&count, sizeof(count));
 
   if (!chrHistData_.notifyEnabled() || count == 0) {
-    return;
+    return false;
   }
 
   // 1 フレーム = 9 バイト packed (oldest → newest)
@@ -120,6 +120,7 @@ void EnvBleService::notifyHistoryBurst(const MeasurementFrame* frames, uint16_t 
     chrHistData_.notify(pkt, sizeof(pkt));
     delay(10); // BLE スタックの TX バッファ溢れを防ぐ
   }
+  return true;
 }
 
 void EnvBleService::notifySnapshotIfPossible(const MeasurementFrame& snap) {
