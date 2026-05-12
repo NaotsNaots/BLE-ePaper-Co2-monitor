@@ -21,6 +21,7 @@ sequenceDiagram
   participant DEV as SensirionI2CSgp40
   participant VOC as VOCGasIndexAlgorithm
   participant MAP as Eco2Mapper
+  participant HB as HistoryBuffer
   participant EPD as EpdPresenter
   participant GX as GxEPD2_3C
 
@@ -35,11 +36,17 @@ sequenceDiagram
   App->>MAP: snapshotFromVoc(vocIndex, prev, frame)
   MAP-->>App: MeasurementFrame 確定 (index++, eco2, vent, trend)
 
+  Note over App,HB: histCycleCount_ をインクリメント
+  opt histCycleCount_ >= kHistorySampleEvery(3) → 約30分に1回
+    App->>HB: push(frame)
+    Note over App: histCycleCount_ リセット
+  end
+
   App->>EPD: show(frame)
   EPD->>GX: init / setFullWindow / print / display (first/next loop)
   GX-->>EPD: 描画完了
   EPD->>GX: hibernate()
-  Note over App: WakeReason!=Imu → BLE スキップ (OP-APP-04)
+  Note over App: WakeReason!=ImuMotion → BLE スキップ (OP-APP-04)
 
   App->>SGP: heaterOffForSleep()
   SGP->>DEV: turnHeaterOff()
@@ -60,60 +67,85 @@ sequenceDiagram
   participant IMU as LSM6DS3_INT1
   participant App as ApplicationController
   participant SGP as Sgp40Pipeline
-  participant DEV as SensirionI2CSgp40
-  participant VOC as VOCGasIndexAlgorithm
   participant MAP as Eco2Mapper
+  participant HB as HistoryBuffer
   participant EPD as EpdPresenter
   participant BLE as EnvBleService
   participant AD as BluefruitAdvertising
   participant SD as SoftDevice_S132
   participant PH as BLE_Central_phone
 
-  IMU->>App: GPIO 復帰 / 割込フラグ (WakeReason=Imu)
+  IMU->>App: GPIO 復帰 / 割込フラグ (WakeReason=ImuMotion)
 
   App->>SGP: measureVocIndex(...)
-  SGP->>DEV: measureRawSignal(...)
-  DEV-->>SGP: sraw
-  SGP->>VOC: process(sraw)
-  VOC-->>SGP: vocIndex
+  SGP-->>App: OK, sraw, vocIndex
 
   App->>MAP: snapshotFromVoc(...)
   MAP-->>App: MeasurementFrame
 
+  Note over App,HB: histCycleCount_ インクリメント（30分に1回 push）
+  opt histCycleCount_ >= kHistorySampleEvery(3)
+    App->>HB: push(frame)
+  end
+
   App->>EPD: show(frame)
 
-  App->>BLE: updateGattSnapshot(frame), chr.write LE
+  App->>BLE: updateGattSnapshot(frame)
+  Note over BLE: 1101/1102/1103 を write (GATT キャッシュ更新)
+
   App->>BLE: startAdvertising(60000 ms)
-  BLE->>AD: addFlags + addService + start(connectable)
+  BLE->>AD: addFlags + addService + addName + start(connectable)
   AD->>SD: 広告 PDU
   SD-->>PH: ADV_IND (connectable)
 
-  loop 最大 60 秒
-    PH->>SD: 接続要求
-    SD->>BLE: 接続イベント
-    PH->>SD: GATT Read UUID ...1101 / 1102 / ...
-    BLE-->>PH: uint16 / uint32 LE 直列化値
-    opt CCCD 購読時
-      BLE->>PH: Notify (...1103 sampleIndex 等)
+  Note over App: bleSessionActive_=true, loop() 内で runBleWindowIfNeeded() を毎回呼ぶ
+
+  loop 最大 60 秒（runBleWindowIfNeeded ループ）
+    PH->>SD: 接続要求 (CONNECT_REQ)
+    SD->>BLE: 接続イベント (connectCallback)
+    PH->>SD: GATT サービス探索 (Service Discovery)
+    PH->>SD: GATT Read UUID ...1101/1102/1103/1104/1105
+    SD-->>PH: 現在値（LE 直列化）
+
+    Note over PH,SD: CCCD Write (0x0001) → Notify 購読
+    PH->>SD: Write CCCD for ...1102 / ...1103 / ...1106
+
+    Note over App,BLE: notifyEnabled() == true になってから初めて送信
+    App->>BLE: notifyHistoryBurst(hist_.at(0), hist_.count())
+    Note over BLE: 1105 に件数を write
+    loop 各フレーム（oldest → newest）
+      BLE->>PH: Notify ...1106 (9 byte packed frame)
     end
+    BLE-->>App: true（送信成功）
+    Note over App: historyNotifiedThisWindow_ = true → 再送しない
+
+    App->>BLE: notifySnapshotIfPossible(lastFrame_)
+    BLE->>PH: Notify ...1101 vocIndex
+    BLE->>PH: Notify ...1102 eco2Ppm
+    BLE->>PH: Notify ...1103 sampleIndex
   end
 
+  Note over App: タイムアウト（60秒）経過
   App->>BLE: stopAdvertising()
   BLE->>AD: stop()
 
   App->>SGP: heaterOffForSleep()
-  App->>EPD: hibernatePanel() (再確認)
+  App->>EPD: hibernatePanel()
   App->>App: SleepController: arm + enterSystemOffOrDeepSleep
 ```
 
+**重要な実装上の制約:** CCCD 購読（Notify 有効化）は **接続完了後にスマートフォン側が明示的に Write** することで行われる。接続直後は `notifyEnabled() == false` であるため、`notifyHistoryBurst()` は `notifyEnabled()` が true になるまでループごとに再試行し、送信できた時点で `historyNotifiedThisWindow_ = true` をセットして以降の重複送信を防ぐ。
+
 **GATT 値の直列化（実装契約）**
 
-| 特性 UUID（末尾） | `BLECharacteristic::write` 内容 |
-|-------------------|----------------------------------|
-| `...1101` | `(uint16_t)vocIndex` — Sensirion 出力を uint16 に収める（クランプ仕様は `Eco2Mapper` 側で文書化） |
-| `...1102` | `(uint16_t)frame.eco2Ppm` |
-| `...1103` | `(uint32_t)frame.sampleIndex` LE |
-| `...1104` | 固定長 ASCII／セマンティック版（例：`"0.1.0\\0"`）— `sizeof` 固定 |
+| 特性 UUID（末尾） | プロパティ | `BLECharacteristic::write` / Notify 内容 |
+|-------------------|------------|-------------------------------------------|
+| `...1101` | READ, NOTIFY | `(uint16_t)vocIndex` — uint16 にクランプ（0–65535） |
+| `...1102` | READ, NOTIFY | `(uint16_t)frame.eco2Ppm` LE |
+| `...1103` | READ, NOTIFY | `(uint32_t)frame.sampleIndex` LE |
+| `...1104` | READ | 固定長 ASCII 16 bytes（例：`"0.1.0\0"`） |
+| `...1105` | READ | `(uint16_t)count` — 履歴バッファ件数（送信時に更新） |
+| `...1106` | NOTIFY | 9 byte packed frame（oldest → newest 順に逐次 Notify）:<br>`[0..3]` sampleIndex uint32 LE<br>`[4..5]` vocIndex int16 LE（クランプ ±32767）<br>`[6..7]` eco2Ppm uint16 LE<br>`[8]` flags: bits[1:0]=vent, bits[3:2]=trend |
 
 ---
 
@@ -167,6 +199,6 @@ sequenceDiagram
 | シナリオ | 機能 ID / ユースケース |
 |----------|------------------------|
 | A | F2, F3, F4, F5 |
-| B | F3, F4, F6（Read／Notify／Write なし） |
+| B | F3, F4, F6（Read／Notify：1101/1102/1103/1105/1106、CCCD 購読後にバースト送信） |
 | C | F2 初期化品質 |
 | D | F7 |

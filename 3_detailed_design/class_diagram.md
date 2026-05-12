@@ -237,7 +237,7 @@ classDiagram
 | `src/display/EpdPresenter.{h,cpp}` | GxEPD2 インスタンス保持・描画レイアウト |
 | `src/io/ImuWakeSource.{h,cpp}` | LSM6DS3 ウェーク設定（Seeed Wiki／ST DS 準拠のレジスタ設定へ） |
 | `src/power/SleepController.{h,cpp}` | Nordic／Adafruit 省電 API のラッパ |
-| `src/ble/EnvBleService.{h,cpp}` | `Bluefruit`、`BLEService`、4 特性 |
+| `src/ble/EnvBleService.{h,cpp}` | `Bluefruit`、`BLEService`、6 特性（1101〜1106） |
 | `src/power/BatteryMonitor.{h,cpp}` | F7 スタブ（`analogRead(A0)` 等は回路実装後に） |
 | `include/app/types.h` | §2 の構造体・列挙 |
 | `include/app/pin_config.h` | §1 のマクロ |
@@ -271,7 +271,8 @@ classDiagram
 - **`envService.begin()`** … カスタム UUID128（`BLEUuid` にフル文字列）。
 - 各 **`BLECharacteristic`** … `CHR_PROPS_READ \| CHR_PROPS_NOTIFY`、**Write 権限なし**（`SECMODE_OPEN`／NO_ACCESS）。
 - **`Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE)`**、必要なら TxPower、`addService(envService)`、**connectable** で **`start(timeoutSec)`** または `start(0)` ＋自前 `millis()` で 60 秒打切り（API の timeout 挙動は Adafruit 版に合わせ実装）。
-- スナップショット更新時 **`chr.write(&u16, sizeof)`**、接続済みで CCCD active なら **`notify`**（**...1103** サンプルインデックスは接続直後に 1 回送る用途を推奨）。
+- スナップショット更新時 **`chr.write(&u16, sizeof)`**。Notify は **CCCD 購読後**（`notifyEnabled() == true`）にのみ `notify()` を呼ぶ。接続直後は CCCD 未購読のため、スマートフォンが CCCD Write (0x0001) を送るまで待つ必要がある。
+- **履歴バースト（...1106）**: `notifyHistoryBurst()` を `notifyEnabled()` が true になるまでループで再試行し、送信成功時のみ完了フラグをセットする（CCCD タイミングバグ防止）。1105（READ）に件数を write し、1106（NOTIFY）で oldest → newest の順に 9 byte/frame を逐次 Notify する。
 
 ### 6.5 省電（nRF52840）
 
