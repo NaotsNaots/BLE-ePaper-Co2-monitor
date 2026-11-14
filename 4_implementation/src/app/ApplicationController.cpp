@@ -81,6 +81,8 @@ void ApplicationController::runMeasurePipeline() {
     return;
   }
 
+  Serial.printf("[meas] sraw=%u voc=%ld\n", sraw, (long)voc);
+
   MeasurementFrame frame{};
   frame.sampleIndex = ++sampleSeq_;
   frame.srawVoc = sraw;
