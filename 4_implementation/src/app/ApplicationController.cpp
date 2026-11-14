@@ -14,6 +14,27 @@ constexpr uint8_t kMeasureRetries = 3;
 constexpr uint32_t kWakeSeconds = kWakeIntervalMs / 1000u;
 uint32_t gWakeMs = 0;  // 起床した時刻（起きている時間のログ用）
 
+// e-Paper（3 色）の書き換えは 1 回約 15 秒・約 8mA で、10 分ごとに書き換えると平均電流の最大要因になる
+// （BRINGUP.md の見積り）。表示が実質変わらないときは書き換えない。
+constexpr uint16_t kEpdRedrawEco2DeltaPpm = 40;  // 表示中の eCO2 からこれ以上変わったら書き換える
+constexpr uint8_t kEpdMaxSkipCycles = 5;         // 最低でも 6 回（約 1 時間）に 1 回は書き換える
+bool gEpdShown = false;
+MeasurementFrame gEpdLast{};
+uint8_t gEpdSkipped = 0;
+
+bool needsRedraw(const MeasurementFrame& f, bool userWake) {
+  if (!gEpdShown || userWake || gEpdSkipped >= kEpdMaxSkipCycles) {
+    return true;
+  }
+  const bool warmNow = f.vocIndex <= 0;
+  const bool warmShown = gEpdLast.vocIndex <= 0;
+  if (warmNow != warmShown || f.vent != gEpdLast.vent) {
+    return true;
+  }
+  const int32_t d = (int32_t)f.eco2Ppm - (int32_t)gEpdLast.eco2Ppm;
+  return d >= kEpdRedrawEco2DeltaPpm || -d >= kEpdRedrawEco2DeltaPpm;
+}
+
 } // namespace
 
 bool ApplicationController::runHwInit() {
@@ -213,10 +234,20 @@ void ApplicationController::loop() {
     return;
   }
 
-  sm_.setState(app_fsm::RUN_DISPLAY);
-  epd_.show(lastFrame_);
-
   const bool doBle = (wr == WakeReason::ImuMotion);
+
+  sm_.setState(app_fsm::RUN_DISPLAY);
+  if (needsRedraw(lastFrame_, doBle)) {
+    epd_.show(lastFrame_);
+    gEpdLast = lastFrame_;
+    gEpdShown = true;
+    gEpdSkipped = 0;
+    Serial.println("[epd] redraw");
+  } else {
+    ++gEpdSkipped;
+    Serial.printf("[epd] skip %u\n", gEpdSkipped);
+  }
+
   if (doBle) {
     sm_.setState(app_fsm::BLE_WINDOW);
     ble_.updateGattSnapshot(lastFrame_);
