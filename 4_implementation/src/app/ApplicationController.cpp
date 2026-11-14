@@ -12,6 +12,7 @@ constexpr uint32_t kUsbDelayMs = 800;
 constexpr uint8_t kImuThresh = 4;
 constexpr uint8_t kMeasureRetries = 3;
 constexpr uint32_t kWakeSeconds = kWakeIntervalMs / 1000u;
+uint32_t gWakeMs = 0;  // 起床した時刻（起きている時間のログ用）
 
 } // namespace
 
@@ -99,6 +100,7 @@ void ApplicationController::runMeasurePipeline() {
 }
 
 void ApplicationController::armSleepAndYield() {
+  Serial.printf("[sleep] awake_ms=%lu\n", (unsigned long)(millis() - gWakeMs));
   imu_.clearIrqFlags();
   sgp_.heaterOffForSleep();
   epd_.hibernatePanel();
@@ -198,7 +200,9 @@ void ApplicationController::loop() {
       wr = WakeReason::Timer10Min;
     }
   }
+  gWakeMs = millis();
   Serial.printf("[wake] reason=%u (0=Timer 1=Imu 2=Cold)\n", (unsigned)wr);
+  Serial.printf("[bat] mv=%u\n", battery_.sampleMv());
 
   if (battery_.isLow()) {
     Serial.println("[bat] low (stub)");

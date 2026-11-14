@@ -1,4 +1,5 @@
 #include "Sgp40Pipeline.h"
+#include <Arduino.h>
 
 namespace {
 constexpr uint16_t kRhTicksDefault = 0x8000;
@@ -26,6 +27,7 @@ Sgp40Error Sgp40Pipeline::measureVocIndex(uint16_t& srawOut, int32_t& vocOut) {
   uint32_t sum = 0;
   uint8_t n = 0;
   uint16_t sraw = 0;
+  uint16_t all[kPreheatSeconds];  // 予熱中の全サンプル。予熱秒数ごとのぶれを 1 つのログから比べるため
   for (uint8_t i = 0; i < kPreheatSeconds; ++i) {
     if (i > 0) {
       delay(1000);
@@ -34,11 +36,17 @@ Sgp40Error Sgp40Pipeline::measureVocIndex(uint16_t& srawOut, int32_t& vocOut) {
     if (err != 0) {
       return Sgp40Error::I2cNack;
     }
+    all[i] = sraw;
     if (i >= kPreheatSeconds - kAverageLast && sraw != 0) {
       sum += sraw;
       ++n;
     }
   }
+  Serial.print("[pre]");
+  for (uint8_t i = 0; i < kPreheatSeconds; ++i) {
+    Serial.printf(" %u", all[i]);
+  }
+  Serial.println();
   if (n == 0) {
     return Sgp40Error::LowLevel;
   }
