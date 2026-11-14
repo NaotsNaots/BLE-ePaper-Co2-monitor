@@ -158,6 +158,22 @@ void ApplicationController::setup() {
       delay(1000);
     }
   }
+
+#if defined(DISPLAY_DEMO)
+  // 表示確認用: 学習中 → OK → そろそろ → 換気して を順に描く（pio run -e demo_display）
+  const int32_t demoVoc[] = {0, 60, 150, 260};
+  MeasurementFrame prev{};
+  for (uint8_t i = 0; i < 4; ++i) {
+    MeasurementFrame f{};
+    f.sampleIndex = i + 1;
+    eco2_.snapshotFromVoc(demoVoc[i], (i > 0) ? &prev : nullptr, f);
+    Serial.printf("[demo] screen %u VOC=%ld eCO2=%u\n", i + 1, (long)f.vocIndex, f.eco2Ppm);
+    epd_.show(f);
+    prev = f;
+    delay(8000);
+  }
+  Serial.println("[demo] done");
+#endif
 }
 
 void ApplicationController::loop() {
@@ -180,6 +196,7 @@ void ApplicationController::loop() {
       wr = WakeReason::Timer10Min;
     }
   }
+  Serial.printf("[wake] reason=%u (0=Timer 1=Imu 2=Cold)\n", (unsigned)wr);
 
   if (battery_.isLow()) {
     Serial.println("[bat] low (stub)");
@@ -198,6 +215,7 @@ void ApplicationController::loop() {
     sm_.setState(app_fsm::BLE_WINDOW);
     ble_.updateGattSnapshot(lastFrame_);
     ble_.startAdvertising(kBleAdvertiseWindowMs);
+    Serial.println("[ble] advertising start");
     bleSessionActive_ = true;
     bleWindowStartMs_ = millis();
     historyNotifiedThisWindow_ = false;

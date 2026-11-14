@@ -81,7 +81,10 @@ void EnvBleService::startAdvertising(uint32_t windowMs) {
   Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
   Bluefruit.Advertising.addTxPower();
   Bluefruit.Advertising.addService(service_);
-  Bluefruit.Advertising.addName();
+  // 広告パケット（31 バイト）は 128bit UUID で埋まり名前が "EnvEp" に切れるため、
+  // 名前はスキャン応答に入れる。
+  Bluefruit.ScanResponse.clearData();
+  Bluefruit.ScanResponse.addName();
   Bluefruit.Advertising.restartOnDisconnect(false);
   Bluefruit.Advertising.setInterval(32, 244);
   Bluefruit.Advertising.setFastTimeout(0);
@@ -97,8 +100,11 @@ bool EnvBleService::notifyHistoryBurst(const MeasurementFrame* frames, uint16_t 
   // 件数を READ 特性に書き込む
   chrHistCount_.write(&count, sizeof(count));
 
-  if (!chrHistData_.notifyEnabled() || count == 0) {
-    return false;
+  if (!chrHistData_.notifyEnabled()) {
+    return false;  // 未購読: 購読されるまで呼び出し側が再試行する
+  }
+  if (count == 0) {
+    return true;  // 送るものがない＝送信完了。false を返すと毎ループ再試行になり通知が連発する
   }
 
   // 1 フレーム = 9 バイト packed (oldest → newest)

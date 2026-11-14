@@ -12,6 +12,7 @@ HW_TEST_SRC = {
     "test_imu_wake":   "test/hw/imu_wake",
     "test_ble_adv":    "test/hw/ble_adv",
     "test_sleep_cycle":"test/hw/sleep_cycle",
+    "test_sgp40_coldstart": "test/hw/sgp40_coldstart",
 }
 
 # src/ の追加コンパイル対象（ファイル単位で必要なものだけ指定）
